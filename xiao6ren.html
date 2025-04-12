@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>六爻占卜测算</title>
+    <style>
+        body {
+            font-family: '微软雅黑', sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .time-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #e6f3ff;
+            border-radius: 5px;
+        }
+        .gua-card {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #fffbe6;
+            border-left: 4px solid #1890ff;
+            border-radius: 4px;
+            white-space: pre-line;
+        }
+        button {
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #40a9ff;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="time-section">
+            <h2>占卜时间设置</h2>
+            <div>
+                <label>使用当前时间：</label>
+                <button onclick="calculateWithCurrentTime()">立即测算</button>
+            </div>
+            <div style="margin-top: 10px;">
+                <label>或自定义时间：</label>
+                <input type="number" id="customHour" min="0" max="23" placeholder="时">
+                <input type="number" id="customMin" min="0" max="59" placeholder="分">
+                <button onclick="calculateWithCustomTime()">测算</button>
+            </div>
+        </div>
+
+        <div id="result" style="display: none;">
+            <div id="timeInfo" class="gua-card"></div>
+            <h3>第一卦象：</h3>
+            <div id="gua1" class="gua-card"></div>
+            <h3>第二卦象：</h3>
+            <div id="gua2" class="gua-card"></div>
+            <h3>第三卦象：</h3>
+            <div id="gua3" class="gua-card"></div>
+        </div>
+    </div>
+
+    <script>
+        const gua = [
+            "大安：\n身不动时，属木，为青龙。断辞曰：大安事事昌，求谋在东方，失物去不远，宅舍保安康，行人身未动，病者主无防，将军回田野，仔细与推详",
+            "留连：\n卒未归时，属水，为玄武。断辞曰：留连事难成，求谋日未明，官事只宜缓，去者未回程，失物南方见，急讨方称心，更须防口舌，人中且太平",
+            "速喜：\n人便至时，属火，为朱雀。断辞曰：速喜喜来临，求财向南行，失物申午未，逢人路上寻，官事有福德，病者无祸侵，田家六畜吉，行人有信音",
+            "赤口：\n官事凶时，属金，为白虎。断辞曰：赤口主口舌，官非切要防，失物急去寻，行人有惊慌，鸡犬多作怪，病者出西方，更须防咒诅，恐怕染蕴疾",
+            "小吉：\n人来喜时，属木，为六合。断辞曰：小吉最吉昌，路上好商良，阳人来报喜，失物在坤方，行人立便至，交关真是强，凡事皆和合，病者事无防",
+            "空亡：\n音信稀时，属土，为勾陈。断辞曰：空亡事不长，阴人小乘张，求财无有利，行人有灾殃，失物寻不见，官事主刑伤，病人逢暗鬼，乞解保安康"
+        ];
+
+        const shichen = [
+            {s:"子时",c:[23,0],n:1},
+            {s:"丑时",c:[1,2],n:2},
+            {s:"寅时",c:[3,4],n:3},
+            {s:"卯时",c:[5,6],n:4},
+            {s:"辰时",c:[7,8],n:5},
+            {s:"巳时",c:[9,10],n:6},
+            {s:"午时",c:[11,12],n:7},
+            {s:"未时",c:[13,14],n:8},
+            {s:"申时",c:[15,16],n:9},
+            {s:"酉时",c:[17,18],n:10},
+            {s:"戌时",c:[19,20],n:11},
+            {s:"亥时",c:[21,22],n:12}
+        ];
+
+        function calculate(hour, minute) {
+            let shichenObj = shichen.find(item => item.c.includes(hour));
+            let sum = shichenObj.n;
+            
+            // 计算刻数
+            let t1 = Math.floor(minute / 15);
+            if(shichenObj.c[0] === hour && hour !== 23) t1 += 4;
+            if(t1 === 0) t1 = 10;
+            
+            // 计算余分
+            let t2 = minute % 15;
+            if(t2 === 0) t2 = 10;
+
+            // 计算卦象索引
+            const gua1 = (shichenObj.n - 1) % 6;
+            const gua2 = (sum + t1 - 1) % 6;
+            const gua3 = (sum + t1 + t2 - 1) % 6;
+
+            return {
+                timeStr: `${shichenObj.s} ${t1}刻 余${minute%15}分`,
+                guas: [gua[gua1], gua[gua2], gua[gua3]]
+            };
+        }
+
+        function updateDisplay(result) {
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('timeInfo').textContent = "此时为：" + result.timeStr;
+            document.getElementById('gua1').textContent = result.guas[0];
+            document.getElementById('gua2').textContent = result.guas[1];
+            document.getElementById('gua3').textContent = result.guas[2];
+        }
+
+        function calculateWithCurrentTime() {
+            const now = new Date();
+            const hour = now.getHours();
+            const minute = now.getMinutes();
+            const result = calculate(hour, minute);
+            updateDisplay(result);
+        }
+
+        function calculateWithCustomTime() {
+            const hour = parseInt(document.getElementById('customHour').value);
+            const minute = parseInt(document.getElementById('customMin').value);
+            
+            if(isNaN(hour) || hour < 0 || hour > 23 || 
+               isNaN(minute) || minute < 0 || minute > 59) {
+                alert("请输入有效时间（时：0-23，分：0-59）");
+                return;
+            }
+            
+            const result = calculate(hour, minute);
+            updateDisplay(result);
+        }
+    </script>
+</body>
+</html>

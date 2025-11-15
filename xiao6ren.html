@@ -1,38 +1,59 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
     <meta charset="UTF-8">
     <title>六爻占卜测算</title>
     <style>
         body {
-            font-family: '微软雅黑', sans-serif;
+            font-family: "宋体", SimSun, serif;
             max-width: 800px;
             margin: 20px auto;
             padding: 20px;
-            background-color: #f0f8ff;
+            overflow-x: hidden; /* 只隐藏水平滚动条，避免影响垂直内容 */
+            background: #000; /* 黑色背景，突出粒子 */
         }
+        /* 关键：设置 canvas 为背景层 */
+        #particleCanvas {
+            display: block;
+            position: fixed; /* 固定在窗口，不随滚动移动 */
+            top: 0;
+            left: 0;
+            z-index: -1; /* 置于底层，作为背景 */
+        }
+        /* 示例：添加上层内容，验证背景效果 */
+        .content {
+            color: #fff;
+            text-align: center;
+            padding: 100px 20px;
+            font-size: 24px;
+        }
+         
         .container {
-            background-color: white;
+            background-color: rgba(255, 255, 255, 0.637);
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(43, 161, 207, 0.1);
+             text-align: center; /* 内部元素居中 */
+            margin: 20px auto; /* 容器自身水平居中 */
         }
         .time-section {
             margin-bottom: 20px;
             padding: 15px;
             background-color: #e6f3ff;
             border-radius: 5px;
+             margin: 15px auto; /* 自身水平居中 */
+            text-align: center; /* 内部元素居中 */
         }
         .gua-card {
             margin: 15px 0;
             padding: 15px;
             background-color: #fffbe6;
-            border-left: 4px solid #1890ff;
+            border-left: 4px solid #e8f805;
             border-radius: 4px;
             white-space: pre-line;
         }
         button {
-            background-color: #1890ff;
+            background-color: #8f25b9;
             color: white;
             border: none;
             padding: 10px 20px;
@@ -40,7 +61,7 @@
             cursor: pointer;
         }
         button:hover {
-            background-color: #40a9ff;
+            background-color:rgba(139, 71, 184, 0.6);
         }
         input {
             padding: 8px;
@@ -49,9 +70,14 @@
             border-radius: 4px;
         }
     </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 </head>
 <body>
+    <!-- 粒子背景画布 -->
+    <canvas id="particleCanvas"></canvas>
+    
     <div class="container">
+         <p style="width: auto;text-align: center;font-size:xx-large;font-weight: 800;">六爻占卜测算</p>
         <div class="time-section">
             <h2>占卜时间设置</h2>
             <div>
@@ -76,15 +102,43 @@
             <div id="gua3" class="gua-card"></div>
         </div>
     </div>
+<style>
+.tip {
+  display: none; /* 默认隐藏 */
+  position: absolute;
+  background: #333;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-top: 5px;
+}
+.tip.show { display: inline-block; } /* 显示状态 */
+.trigger { color: #0066cc; cursor: pointer; }
+</style>
 
+<!-- JS：控制点击显示/隐藏 -->
+<script>
+function toggleTip(trigger) {
+  const tip = trigger.nextElementSibling;
+  tip.classList.toggle('show'); // 切换显示/隐藏
+  
+  // 点击页面其他地方关闭提示
+  document.addEventListener('click', (e) => {
+    if (!trigger.contains(e.target) && !tip.contains(e.target)) {
+      tip.classList.remove('show');
+    }
+  });
+}
+</script>
     <script>
         const gua = [
-            "大安：\n身不动时，属木，为青龙。断辞曰：大安事事昌，求谋在东方，失物去不远，宅舍保安康，行人身未动，病者主无防，将军回田野，仔细与推详",
-            "留连：\n卒未归时，属水，为玄武。断辞曰：留连事难成，求谋日未明，官事只宜缓，去者未回程，失物南方见，急讨方称心，更须防口舌，人中且太平",
-            "速喜：\n人便至时，属火，为朱雀。断辞曰：速喜喜来临，求财向南行，失物申午未，逢人路上寻，官事有福德，病者无祸侵，田家六畜吉，行人有信音",
-            "赤口：\n官事凶时，属金，为白虎。断辞曰：赤口主口舌，官非切要防，失物急去寻，行人有惊慌，鸡犬多作怪，病者出西方，更须防咒诅，恐怕染蕴疾",
-            "小吉：\n人来喜时，属木，为六合。断辞曰：小吉最吉昌，路上好商良，阳人来报喜，失物在坤方，行人立便至，交关真是强，凡事皆和合，病者事无防",
-            "空亡：\n音信稀时，属土，为勾陈。断辞曰：空亡事不长，阴人小乘张，求财无有利，行人有灾殃，失物寻不见，官事主刑伤，病人逢暗鬼，乞解保安康"
+            "大安：\n身不动时，属木，为青龙。\n断辞曰：大安事事昌，求谋在东方，失物去不远，宅舍保安康，行人身未动，病者主无防，将军回田野，仔细与推详",
+            "留连：\n卒未归时，属水，为玄武。\n断辞曰：留连事难成，求谋日未明，官事只宜缓，去者未回程，失物南方见，急讨方称心，更须防口舌，人中且太平",
+            "速喜：\n人便至时，属火，为朱雀。\n断辞曰：速喜喜来临，求财向南行，失物申午未，逢人路上寻，官事有福德，病者无祸侵，田家六畜吉，行人有信音",
+            "赤口：\n官事凶时，属金，为白虎。\n断辞曰：赤口主口舌，官非切要防，失物急去寻，行人有惊慌，鸡犬多作怪，病者出西方，更须防咒诅，恐怕染蕴疾",
+            "小吉：\n人来喜时，属木，为六合。\n断辞曰：小吉最吉昌，路上好商良，阳人来报喜，失物在坤方，行人立便至，交关真是强，凡事皆和合，病者事无防",
+            "空亡：\n音信稀时，属土，为勾陈。\n断辞曰：空亡事不长，阴人小乘张，求财无有利，行人有灾殃，失物寻不见，官事主刑伤，病人逢暗鬼，乞解保安康"
         ];
 
         const shichen = [
@@ -155,6 +209,87 @@
             const result = calculate(hour, minute);
             updateDisplay(result);
         }
+    </script>
+    <script>
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.vx = (Math.random() - 0.5) * 0.8;
+                this.vy = (Math.random() - 0.5) * 0.8;
+                this.radius = Math.random() * 1.5 + 0.5;
+                this.color = 'rgba(115, 64, 230, 0.8)';
+                this.mouseRange = 300;
+            }
+
+            update(mouse) {
+                if (mouse) {
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < this.mouseRange) {
+                        const force = (this.mouseRange - distance) / this.mouseRange;
+                        this.x += dx * force * 0.02;
+                        this.y += dy * force * 0.02;
+                    }
+                }
+
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+        }
+
+        const particles = [];
+        const particleCount = 1000;
+
+        function initParticles() {
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        let mouse = null;
+        window.addEventListener('mousemove', (e) => {
+            mouse = { x: e.clientX, y: e.clientY };
+        });
+        window.addEventListener('mouseleave', () => {
+            mouse = null;
+        });
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(particle => {
+                particle.update(mouse);
+                particle.draw();
+            });
+            requestAnimationFrame(animate);
+        }
+
+        initParticles();
+        animate();
     </script>
 </body>
 </html>
